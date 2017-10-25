@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html>
+<title>Diagnose Parkinson's Disease Online</title>
+<link href="https://fonts.googleapis.com/css?family=Fira+Sans:300,300i,400,400i,500,500i,600,600i,700,700i" rel="stylesheet">
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+<script src="./recorder.js"></script>
+<style>
+    body {
+        border:0;
+        margin:0;
+        width:100%;
+        min-height:100%;
+        font-family:'Fira Sans' !important;
+    }
+    iframe{
+    border:0;
+    }
+    .bg{
+        width:100%;
+        height:100vh;
+        position:fixed;
+        z-index:-2;
+    }
+    #darken{
+        background-color:#222;
+        width:100%;
+        height:100vh;
+        position;fixed;
+        z-index:-1;
+        opacity:0.9;
+    }
+    #startscreen {
+        z-index:1;
+        color:#fff;
+        position:fixed;
+        width:100%;
+        height:100vh;
+        text-align:center;
+    }
+    #instructions{
+        z-index:1;
+        top:0;
+        color:#fff;
+        position:fixed;
+        width:100%;
+        height:100vh;
+        text-align:center;
+        display:none;
+    }
+    #done{
+        z-index:1;
+        top:0;
+        color:#fff;
+        position:fixed;
+        width:100%;
+        height:100vh;
+        text-align:center;
+        display:none;
+    }
+    .disclaimer {
+        width:800px;
+        overflow-y:auto;
+        font-size:1.2em;
+        display:inline-block;
+    }
+    h1 {
+        font-size:3em;
+    }
+    button {   
+        border: 1px #fff solid;
+        background-color:rgba(0,0,0,0.5);
+        padding: 12px 24px;
+        color:#fff;
+        font-size:1.4em;
+        font-weight:300;
+        border-color:#fff;
+    }
+
+    button:hover {
+        background-color:rgba(255,255,255,0);
+        color:#fff;
+        border: 2px #fff solid;
+    }
+    #record{
+        position:fixed;
+        z-index:-1;
+    top:calc(50% - 20px);
+    left:calc(50% - 50px);
+    }
+</style>
+<script>
+    var baseurl = "https://174.138.31.136/";
+    $(document).ready(function(){
+    $.ajax({
+      url: baseurl + "/online",
+      success: function(){
+        $("#record").html("Record");
+      }
+    });
+    var audio_context;
+    var rec;
+    try {
+      window.AudioContext = window.AudioContext || window.webkitAudioContext;
+      navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia;
+      window.URL = window.URL || window.webkitURL;
+      audio_context = new AudioContext;
+    } catch (e) {
+      alert('No web audio support in this browser!');
+    }
+
+    navigator.getUserMedia({audio: true}, startUserMedia, function(e) {
+      __log('No live audio input: ' + e);
+    });
+    function startUserMedia(stream) {
+    var input = audio_context.createMediaStreamSource(stream);
+    rec = new Recorder(input);
+      }
+    var a = document.createElement("a");
+    document.body.appendChild(a);
+    a.style = "display: none";
+        $('#continue').click(function(){
+            $("#startscreen").fadeOut();
+            $("#instructions").fadeIn();
+        });
+        $('#begin').click(function(){
+            $("#instructions").fadeOut();
+            $("#darken").fadeOut();
+        });
+        $("#record").mousedown(function(){
+            rec.record();
+
+        });
+        $("#record").mouseup(function(){
+            rec.stop();
+            rec.exportWAV(function(blob){
+                var fd = new FormData();
+                fd.append('file', blob, 'audio');
+                console.log(blob.size);
+                if (blob.size < 100000 || blob.size > 5000000)
+                {
+                    alert("please record for longer/shorter!");
+                    return;
+                }
+                $.ajax({
+                    type:"POST",
+                    url: baseurl+"/diagnose/",
+                    data: fd,
+                    processData: false,
+                    contentType: false
+                }).done(function(id){
+                    $("#darken").fadeIn();
+                    $("#done").fadeIn();
+                    $("#link").attr("href", baseurl + id);
+                });
+                rec.clear();
+            })
+        });
+    });
+</script>
+<head>
+<body>
+<iframe src="https://maxwg.github.io/spectrogram/index.html" class="bg"></iframe>
+<div id="startscreen">
+    <br/>
+    <br/>
+    <h1>Disclaimer</h1>
+    <div class="disclaimer">
+        <p>This diagnosis in no way replaces the diagnosis of a trained medical professional. It is likely to b very inaccurate and is not suitable for use as an actual diagnosis tool</p>
+        <p>Your voice data will be recorded and sent to a server where it will be processed and deleted. The disk is not wiped after deletion so there is no guarantee that it cannot be recovered.</p>
+        <p>Your result is anonymized and will be available at a public (but difficult to access link)</p>
+        <p>
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL MAX WANG BE LIABLE FOR ANY
+DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
+ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.</p>
+    </div>
+    <br/>
+    <button id="continue">Continue</button>
+</div>
+<div id="instructions">
+    <br/>
+    <br/>
+    <br/>
+    <h1>Instructions</h1>
+    <div class="disclaimer">
+        <p>When you're ready, say "aaaah" and hold down the record button for 1-5 seconds</p>
+        <p>Make sure you are already saying "aaah" before pressing the button</p>
+        <p>For best results, make sure you are in a quiet area, and speak loudly 10cm away from the microphone.</p>
+        <p>Works best in the latest version of Chrome.</p>
+        <p>You may need to visit (<a href="https://174.138.31.136/online">here</a>) and add a security exception since I can't afford a SSH certificate</p>
+    </div>
+    <br/>
+    <button id="begin">OK</button>
+</div>
+<div id="done">
+    <br/>
+    <br/>
+    <br/>
+    <h1>All Done!</h1>
+    <div class="disclaimer">
+        <p>Your audio has been placed in a queue to be processed on a crappy Intel Celeron server with 256MB ram. Please be patient as it loads Matlab and Tensorflow while struggling to page everything on its USB2.0 HDD.</p>
+        <p>You can check your position in the queue and view results <a href="#" id="link">here!</a></p>
+        <p>It takes 20 minutes to diagnose a 4 second speech sample. You might want to save the link check back tomorrow</p>
+    </div>
+</div>
+<div id="darken">
+</div>
+<button id="record">Connecting to <br/> server.... <br/>(server may be offline or dead)
+<br/>
+    You may need to visit (<a href="https://174.138.31.136/online">here</a>) <br/>
+since I can't afford a SSH certificate</button>
+</body>
+</head>
+</html>

@@ -1,0 +1,1 @@
+SMILExtract -C ../../smile.conf -I ./countdown.wav -O output
