@@ -1,5 +1,6 @@
 """
-Feature selectors must take in a patient record and return a numerical list of features
+Feature subsets must take in a patient record and return a numerical list of features
+Used in cross_validate.py.
 """
 import numpy as np
 from copy import copy

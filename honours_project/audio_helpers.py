@@ -1,3 +1,13 @@
+"""
+    audio_helpers.py
+
+    This file contains helpers to crop audio files.
+
+    This is a very hacky file, delegating to os.system.
+
+    Prereq: mplayer.
+"""
+
 import thread_helper
 import pickle
 import os

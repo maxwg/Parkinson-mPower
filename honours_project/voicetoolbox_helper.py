@@ -1,3 +1,9 @@
+"""
+voicetoolbox_helper.py
+
+Python interface for Tsanas' toolbox.
+"""
+
 def newEngine():
     try:
         import matlab.engine

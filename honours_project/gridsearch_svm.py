@@ -1,3 +1,11 @@
+"""
+gridsearch_svm.py
+
+A basic file to search SVM hyperparameters.
+
+Deprecated. Random Search/Hyperopt is the better choice.
+
+"""
 from sklearn.svm import SVC
 from thread_helper import processIterableInThreads
 from queue import Queue

@@ -1,3 +1,10 @@
+"""
+path_processors.py
+Primary file to extract motion features.
+
+Author: Max Wang
+        maxwg@outlook.com.au
+"""
 import json
 import numpy as np
 import math
@@ -36,6 +43,15 @@ except Exception as e:
 eng = None
 eng_execs = 0
 def createOrRepairMatlabEngine():
+    """
+    :return: A matlab engine for python.
+    https://www.mathworks.com/help/matlab/matlab-engine-for-python.html
+
+    The engine seems to be subject to memory leaks on the version used (2017a, Py3.5)
+
+    Call createOrRepairMatlabEngine() at each iteration to clear and restart
+    matlab at appropriate intervals
+    """
     global eng, eng_execs
     if eng is None:
         eng = voicetoolbox_helper.newEngine()
@@ -66,6 +82,16 @@ def butter_highpass(lowcut, fs, order=5):
 
 
 def butter_highpass_filter(data, lowcut, fs, order=5):
+    """
+    A highpass filter which removes all low frequency information
+    below the specified lowcut
+
+    :param data: Signal - (Nxd) dimensional np array
+    :param lowcut: Remove all frequency information below this value.
+    :param freq: The low frequency cutoff
+    :param order: (optional) order of the butterworth filter
+    :return: (Nxd) dimensional np array
+    """
     b, a = butter_highpass(lowcut, fs, order=order)
     y = filtfilt(b, a, data)
     return y
@@ -163,7 +189,11 @@ def getAreaOfEllipsoidMeasurements(radius):
     area = [radius[0]*radius[1]]
     return area
 
-def accelerationToPos(motion, sampling_time = None):
+def accelerationToPos(motion):
+    """
+    :param motion: (Nx3) array of current positions
+    :return: (Nx3) array of instantaneous accelerations
+    """
     xyz = []
     cx, cy, cz = 0, 0,0
     xyz.append((cx, cy, cz))
@@ -179,6 +209,14 @@ def motionToAcceleration(motion):
     return np.sum(np.abs(motion), axis=1)
 
 def shortTimeFourierWindow(accel, measure_time):
+    """
+    From acceleration data, return the mean, min and stdev of
+    data in short time Fourier bins.
+
+    :param accel: Nxd numpy array
+    :param measure_time: The time between each measurement. E.g 0.01s == 100Hz
+    :return: [float]
+    """
     chunks = accel.shape[0] // (2.5 // measure_time) #split array into approximately 3 second chunks
     st_accel = np.array_split(accel, chunks)
     def getfftamplitudes(st):
@@ -216,10 +254,24 @@ def shortTimeFourierWindow(accel, measure_time):
     return np.array([mins, means, stdev]).flatten()
 
 def getMomentsNorm(accel, moments=6):
+    """
+    Get the moments from acceleration signal
+    :param accel: Nxd numpy array
+    :param moments: Number of moments
+    :return: [float]
+    """
     from scipy.stats import moment
     return [np.sqrt(np.sum(mo**2)) for mo in [moment(accel, moment=n) for n in range(2,moments)]] + [np.sqrt(np.sum(np.mean(accel, axis=0)**2))]
 
 def getMomentsIndividual(position, moments=4):
+    """
+    Get moments from one-dimensional signal.
+    More suitable for position rather than acceleration
+
+    :param position: numpy array R^N
+    :param moments: number of moments
+    :return: [float]
+    """
     from scipy.stats import moment
     return [moment(position, moment=n) for n in range(2,moments)]
 
@@ -238,6 +290,13 @@ def RotAtoB( a,b ):
     return R
 
 def loadMotionIntoArray(path, highPass=False, min_len=2000, crop=(400, 2000)):
+    """
+    Given a file, return the acceleration data
+    :param path: ./Path/to/file.json
+    :param highPass: Use highpass butterworth filter?
+    :param crop: Return specific portion of the file for consistency
+    :return: Nx3 numpy array of acceleration values
+    """
     with open(path) as f:
         errors = 0
         data = json.load(f)[1:-1]
@@ -309,6 +368,11 @@ def getAccelerationFromPositions(position):
     return accel
 
 def getFirstMinimaIdx(arr):
+    """
+    Very naive method of returning first minimum
+    :param arr: array-like
+    :return: int
+    """
     cval = arr[0]
     for i, n in enumerate(arr):
         if n > cval:
@@ -317,14 +381,18 @@ def getFirstMinimaIdx(arr):
     raise("ERR NO MINIMA")
 
 def getTau(signal):
-    # Set Tau with first minimum of mutual info
-    # set embedding dimension using False Nearest Neighbours.
+    # Set Tau with first minimum of mutual info and embedding dimension using False Nearest Neighbours.
     return getFirstMinimaIdx(lyapunov.lagged_ami(signal, 0, 200)[1])
 
 def getZCR(signal):
+    """ The zero crossing rate
+    """
     return [((signal[:-1] * signal[1:]) < 0).mean()]
 
 def crossEntropyAndMutualInformationAndCorrelation(x,y):
+    """
+    Given two signals, returns their cross entropy, cross correlation and mutual information.
+    """
     xy = np.concatenate((x,y))
     bin_range = xy.min(), xy.max()
     num_bins = int(math.ceil(np.sqrt(x.size/5))) # Reccomended by Cellucci et al. (2005)
@@ -357,6 +425,12 @@ def get_ap_samp_entropy_filtering(y):
     return (-0.11 + 0.65*np.sqrt(sd1/sd2))/np.power(len(y)/1000, 1/4)
 
 def getAllFeaturesRest(path, highPass=True):
+    """
+    Features optimized for the rest component of mPower.
+    :param path: ./path/to/rest_file.json
+    :param highPass: Perform highpass on rest data to map closer to postural sway?
+    :return: {features}, int number_errors, Nx3 numpy array of raw accel.
+    """
     accel, sampling_time, errors = loadMotionIntoArray(path, highPass=highPass)
     if errors > 1000:
         return accel, errors, errors
@@ -578,6 +652,11 @@ def getAllFeaturesWalking(path):
 
 
 def getPedometerFeatures(path):
+    """
+    Get pedometer features using the given challenge baseline
+    feature set
+    :param path: ./path/to/pedometer_data.json
+    """
     pedo = np.asarray(r['getPedometerFeatures'](path))[:-1]
     def tryFloat(val):
         try:

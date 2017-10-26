@@ -1,3 +1,9 @@
+"""
+    opensmile.py
+
+    This file contains various shortcuts for working with the opensmile library.
+"""
+
 import subprocess
 import csv
 from config import SMILE_path, OPENSMILE_log
