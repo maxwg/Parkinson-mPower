@@ -1,0 +1,16 @@
+fakemp==0.9.1
+GPy==1.7.7
+h5py==2.7.0
+hyperas==0.4
+hyperopt==0.1
+Keras==2.0.6
+mrmr==0.9.2
+PyREM==0.1.4
+python-speech-features==0.6
+PyWavelets==0.5.2
+ReliefF==0.1.2
+skfeature-chappers==1.0.1
+synapseclient==1.7.1
+tensorflow==1.2.1
+Theano==0.9.0
+nolds==0.3.4
