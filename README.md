@@ -1,3 +1,3 @@
-# Parkinson's mPower feature engineering and deep learning code.
+# mPower feature engineering and deep learning.
 
-These files contain a
+These directories contain the code developed over the course of my honour's project, and the code submitted to the DREAM subchallenge 1 and 2.
