@@ -138,6 +138,7 @@ def mean_var_features_names():
     return features
 
 
+
 def write_features_to_csv(records, path, features=basic_features, feature_names = basic_features_names):
     all_features = []
     for r in records:
@@ -162,12 +163,20 @@ def write_features_to_csv(records, path, features=basic_features, feature_names 
                 else:
                     all_features[i][j] = min_feat[j-1]
             all_features[i][j] = (all_features[i][j] - mean_feat[j-1])/std_feat[j-1]
+
     all_features = np.array(all_features)
+    all_features[all_features > 1000] = 1001
+    all_features[all_features < -1000] = -1001
+    valid_feat_idx = (np.mean(np.abs(all_features) < 1000, axis=0) > 0.995).tolist() #Remove features with a range that is too big after normalisation (=> high variance, uninformative)
+    valid_feat_idx[0] = True #always include ID
+    all_features = all_features[:,valid_feat_idx]
     hnames = feature_names()
-    headers = ["dataFileHandleId"] + hnames
+    headers = np.array(["dataFileHandleId"] + hnames)
+    headers= headers[valid_feat_idx]
     import pandas as pd
     df = pd.DataFrame(all_features, columns=headers)
     df.to_csv(path, index=False)
+    
 
 if __name__ == "__main__":
     getLDopaChallengeTrain()
